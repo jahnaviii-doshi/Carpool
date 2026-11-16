@@ -18,7 +18,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local --schema public > lib/supabase/database.types.ts && prettier --write lib/supabase/database.types.ts",
-    "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:db"
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:db"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.17",

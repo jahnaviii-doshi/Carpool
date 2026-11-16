@@ -49,7 +49,7 @@ pnpm typecheck     # tsc --noEmit
 pnpm test          # Vitest unit tests
 pnpm test:db       # pgTAP tests in supabase/tests (needs `pnpm db:start`)
 pnpm build && pnpm test:e2e   # Playwright against a production build
-pnpm ci            # lint + typecheck + unit + db tests
+pnpm check         # lint + typecheck + unit + db tests
 ```
 
 To use an already-installed Chromium for Playwright, set
