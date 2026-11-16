@@ -1,25 +1,19 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SignInForm } from "@/app/sign-in-form";
 
-/**
- * Milestone 1 placeholder. The real landing page (email field + server-side
- * college-domain check) arrives in Milestone 2.
- */
-export default function Home() {
+export default function Landing() {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">CampusPool</CardTitle>
-          <CardDescription>
-            Share rides with verified students and staff from your own college.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-sm">
-            Sign-in with your college email is coming in the next milestone.
-          </p>
-        </CardContent>
-      </Card>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-8 p-4">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">CampusPool</h1>
+        <p className="text-muted-foreground text-lg">
+          Share rides with verified students and staff from your own college.
+        </p>
+      </div>
+      <SignInForm />
+      <p className="text-muted-foreground text-sm">
+        We&apos;ll email you a 6-digit code. Only college email addresses work. Personal addresses
+        like Gmail or Outlook are not accepted.
+      </p>
     </main>
   );
 }
