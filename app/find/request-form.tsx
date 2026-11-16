@@ -170,12 +170,17 @@ export function RequestForm({
         </div>
       ) : null}
 
-      <Field id="notes" label="Notes (optional)" errors={errors.notes}>
+      <Field
+        id="notes"
+        label="Notes (optional)"
+        errors={errors.notes}
+        help="Everyone at your college can read this. Don't include your address."
+      >
         <Textarea
           maxLength={500}
           rows={3}
           defaultValue={defaults.notes ?? ""}
-          {...fieldAria("notes", errors.notes)}
+          {...fieldAria("notes", errors.notes, true)}
         />
       </Field>
 

@@ -31,7 +31,7 @@ export async function saveOffer(_prev: FormState, formData: FormData): Promise<F
     }
   }
 
-  const { error } = await supabase.rpc("save_ride_offer", {
+  const { data: offerId, error } = await supabase.rpc("save_ride_offer", {
     p_id: v.id,
     p_vehicle_id: v.vehicleId,
     p_origin_lat: v.origin.lat,
@@ -54,7 +54,7 @@ export async function saveOffer(_prev: FormState, formData: FormData): Promise<F
   });
   if (error) return { message: userMessage(error) };
 
-  redirect(`/rides?saved=offer`);
+  redirect(`/offers/${offerId}?saved=${v.id ? "updated" : "1"}`);
 }
 
 export async function cancelOffer(_prev: FormState, formData: FormData): Promise<FormState> {

@@ -133,3 +133,57 @@ begin
   return v_request;
 end;
 $$;
+
+-- Inserts a dated offer directly (as postgres) with full control over time
+-- and geometry. Triggers still set college_id and fuzzed points.
+create function pg_temp.raw_offer(
+  p_driver uuid, p_from_lng float8, p_from_lat float8, p_to_lng float8, p_to_lat float8,
+  p_depart timestamptz, p_seats int default 2, p_flex int default 15, p_women_only boolean default false)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_vehicle uuid;
+  v_id uuid;
+begin
+  select id into v_vehicle from public.vehicles where owner_id = p_driver limit 1;
+  if v_vehicle is null then
+    insert into public.vehicles (owner_id, college_id, type, make, model, color, seats)
+    values (p_driver, (select college_id from public.profiles where id = p_driver), 'car', 'Toyota', 'Yaris', 'Red', 4)
+    returning id into v_vehicle;
+  end if;
+  insert into public.ride_offers (
+    driver_id, vehicle_id, college_id, origin_point, origin_label, origin_fuzzed,
+    dest_point, dest_label, dest_fuzzed, depart_at, flex_minutes, seats_total, seats_available, women_only)
+  values (
+    p_driver, v_vehicle, (select college_id from public.profiles where id = p_driver),
+    extensions.st_makepoint(p_from_lng, p_from_lat)::extensions.geography, 'from',
+    extensions.st_makepoint(p_from_lng, p_from_lat)::extensions.geography,
+    extensions.st_makepoint(p_to_lng, p_to_lat)::extensions.geography, 'to',
+    extensions.st_makepoint(p_to_lng, p_to_lat)::extensions.geography,
+    p_depart, p_flex, p_seats, p_seats, p_women_only)
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+create function pg_temp.raw_request(
+  p_rider uuid, p_from_lng float8, p_from_lat float8, p_to_lng float8, p_to_lat float8,
+  p_start timestamptz, p_end timestamptz, p_seats int default 1, p_women_pref boolean default false,
+  p_days int[] default null)
+returns uuid
+language sql
+as $$
+  insert into public.ride_requests (
+    rider_id, college_id, pickup_point, pickup_label, pickup_fuzzed, dest_point, dest_label, dest_fuzzed,
+    window_start, window_end, seats_needed, women_only_pref, recurring_days, recurring_until)
+  values (
+    p_rider, (select college_id from public.profiles where id = p_rider),
+    extensions.st_makepoint(p_from_lng, p_from_lat)::extensions.geography, 'pickup',
+    extensions.st_makepoint(p_from_lng, p_from_lat)::extensions.geography,
+    extensions.st_makepoint(p_to_lng, p_to_lat)::extensions.geography, 'dest',
+    extensions.st_makepoint(p_to_lng, p_to_lat)::extensions.geography,
+    p_start, p_end, p_seats, p_women_pref, p_days,
+    case when p_days is null then null else (p_start at time zone 'Asia/Dubai')::date + 60 end)
+  returning id;
+$$;

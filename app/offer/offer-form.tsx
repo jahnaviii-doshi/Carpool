@@ -265,7 +265,7 @@ export function OfferForm({
         id="notes"
         label="Notes (optional)"
         errors={errors.notes}
-        help="e.g. where exactly you'll wait, luggage space."
+        help="Everyone at your college can read this. Don't include your address or exact meeting point: riders get that once you accept them."
       >
         <Textarea
           maxLength={500}

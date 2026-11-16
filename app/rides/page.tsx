@@ -108,7 +108,10 @@ export default async function RidesPage({
                   seats={`${o.seats_total} seats`}
                   badges={["Repeats", ...(o.women_only ? ["Women only"] : [])]}
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm">
+                    <Link href={`/offers/${o.id}`}>See riders</Link>
+                  </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/offers/${o.id}/edit`}>Edit</Link>
                   </Button>
@@ -130,7 +133,10 @@ export default async function RidesPage({
                   when={`${formatDays(r.recurring_days)}, ${formatClock(r.window_start!, tz)}–${formatClock(r.window_end!, tz)} · until ${r.recurring_until}`}
                   badges={["Repeats"]}
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm">
+                    <Link href={`/requests/${r.id}`}>See drivers</Link>
+                  </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/requests/${r.id}/edit`}>Edit</Link>
                   </Button>
@@ -170,7 +176,10 @@ export default async function RidesPage({
                 <p className="text-muted-foreground text-sm">
                   {o.vehicle_color} {o.vehicle_make} {o.vehicle_model} · from {o.origin_label}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm">
+                    <Link href={`/offers/${o.id}`}>See riders</Link>
+                  </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/offers/${o.id}/edit`}>Edit</Link>
                   </Button>
@@ -206,10 +215,10 @@ export default async function RidesPage({
                     ...(r.women_only_pref ? ["Women drivers"] : []),
                   ]}
                 />
-                <p className="text-muted-foreground text-sm">
-                  Matching drivers will appear here soon.
-                </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm">
+                    <Link href={`/requests/${r.id}`}>See drivers</Link>
+                  </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/requests/${r.id}/edit`}>Edit</Link>
                   </Button>

@@ -15,7 +15,7 @@ export async function saveRequest(_prev: FormState, formData: FormData): Promise
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error) };
   const v = parsed.data;
 
-  const { error } = await supabase.rpc("save_ride_request", {
+  const { data: requestId, error } = await supabase.rpc("save_ride_request", {
     p_id: v.id,
     p_pickup_lat: v.pickup.lat,
     p_pickup_lng: v.pickup.lng,
@@ -36,7 +36,7 @@ export async function saveRequest(_prev: FormState, formData: FormData): Promise
   });
   if (error) return { message: userMessage(error) };
 
-  redirect("/rides?saved=request");
+  redirect(`/requests/${requestId}?saved=${v.id ? "updated" : "1"}`);
 }
 
 export async function cancelRequest(_prev: FormState, formData: FormData): Promise<FormState> {

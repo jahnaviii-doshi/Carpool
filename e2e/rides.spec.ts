@@ -41,7 +41,10 @@ test.describe("offering a ride", () => {
     await page.getByLabel("Seats").fill("2");
     await page.getByRole("button", { name: "Offer this ride" }).click();
 
-    await expect(page).toHaveURL(/\/rides\?saved=offer$/);
+    // Saving opens the ride's match page; it is also listed under My rides.
+    await expect(page).toHaveURL(/\/offers\/[0-9a-f-]+\?saved=1$/);
+    await expect(page.getByRole("heading", { name: /riders? on your way/ })).toBeVisible();
+    await page.getByRole("link", { name: "My rides" }).click();
     const card = page.getByTestId("my-offer");
     await expect(card).toContainText("Al Nahda, Sharjah");
     await expect(card).toContainText("2/2 free");
@@ -62,7 +65,10 @@ test.describe("offering a ride", () => {
     await card.getByRole("link", { name: "Edit" }).click();
     await page.getByLabel("Seats").fill("3");
     await page.getByRole("button", { name: "Save changes" }).click();
-    await expect(page.getByTestId("my-offer")).toContainText("3/3 free");
+    await expect(page).toHaveURL(/\?saved=updated$/);
+    await expect(page.getByText("Changes saved.")).toBeVisible();
+    await expect(page.getByText("3/3 free")).toBeVisible();
+    await page.getByRole("link", { name: "My rides" }).click();
 
     // Cancel.
     page.once("dialog", (d) => d.accept());
@@ -89,7 +95,9 @@ test.describe("asking for a ride", () => {
     await page.getByLabel("I need this every week").check();
     await page.getByRole("button", { name: "Post my request" }).click();
 
-    await expect(page).toHaveURL(/\/rides\?saved=request$/);
+    await expect(page).toHaveURL(/\/requests\/[0-9a-f-]+\?saved=1$/);
+    await expect(page.getByRole("heading", { name: "Weekly request" })).toBeVisible();
+    await page.getByRole("link", { name: "My rides" }).click();
     await expect(page.getByRole("heading", { name: "Repeating" })).toBeVisible();
     await expect(page.getByText(/Mon–Fri, 07:30–08:30/)).toBeVisible();
     // Dated requests were created for the coming weekdays.

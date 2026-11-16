@@ -6,6 +6,9 @@ export type Database = {
       app_settings: {
         Row: {
           id: boolean;
+          match_dest_radius_m: number;
+          match_limit: number;
+          match_pickup_radius_m: number;
           max_cost_per_km: number;
           max_distance_from_campus_m: number;
           max_posts_per_day: number;
@@ -15,6 +18,9 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           id?: boolean;
+          match_dest_radius_m?: number;
+          match_limit?: number;
+          match_pickup_radius_m?: number;
           max_cost_per_km?: number;
           max_distance_from_campus_m?: number;
           max_posts_per_day?: number;
@@ -23,6 +29,9 @@ export type Database = {
         };
         Update: {
           id?: boolean;
+          match_dest_radius_m?: number;
+          match_limit?: number;
+          match_pickup_radius_m?: number;
           max_cost_per_km?: number;
           max_distance_from_campus_m?: number;
           max_posts_per_day?: number;
@@ -46,6 +55,54 @@ export type Database = {
           pattern?: string;
         };
         Relationships: [];
+      };
+      blocks: {
+        Row: {
+          blocked_id: string;
+          blocker_id: string;
+          created_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          blocked_id: string;
+          blocker_id: string;
+          created_at?: string;
+        };
+        Update: {
+          blocked_id?: string;
+          blocker_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "blocks_blocked_id_fkey";
+            columns: ["blocked_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "blocks_blocked_id_fkey";
+            columns: ["blocked_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles_public";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey";
+            columns: ["blocker_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey";
+            columns: ["blocker_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles_public";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       college_domains: {
         Row: {
@@ -1082,16 +1139,85 @@ export type Database = {
       };
       domain_matches: { Args: { p_domain: string; p_parent: string }; Returns: boolean };
       email_domain: { Args: { p_email: string }; Returns: string };
+      find_matches_for_offer: {
+        Args: { p_offer_id: string };
+        Returns: {
+          dest_area: string;
+          dest_lat: number;
+          dest_lng: number;
+          detour_m: number;
+          is_recurring: boolean;
+          notes: string;
+          pickup_area: string;
+          pickup_lat: number;
+          pickup_lng: number;
+          request_id: string;
+          rider_first_name: string;
+          rider_id: string;
+          rider_rating_avg: number;
+          rider_rating_count: number;
+          seats_needed: number;
+          time_gap_minutes: number;
+          window_end: string;
+          window_start: string;
+          women_only_pref: boolean;
+        }[];
+      };
+      find_matches_for_request: {
+        Args: { p_request_id: string };
+        Returns: {
+          depart_at: string;
+          dest_area: string;
+          dest_lat: number;
+          dest_lng: number;
+          detour_m: number;
+          driver_first_name: string;
+          driver_id: string;
+          driver_rating_avg: number;
+          driver_rating_count: number;
+          flex_minutes: number;
+          is_recurring: boolean;
+          notes: string;
+          offer_id: string;
+          origin_area: string;
+          origin_lat: number;
+          origin_lng: number;
+          seats_available: number;
+          time_gap_minutes: number;
+          vehicle_color: string;
+          vehicle_make: string;
+          vehicle_model: string;
+          vehicle_type: Database["public"]["Enums"]["vehicle_type"];
+          women_only: boolean;
+        }[];
+      };
       fuzz_location: { Args: { p_owner: string; p_point: unknown }; Returns: unknown };
       hook_before_user_created: { Args: { event: Json }; Returns: Json };
+      is_blocked_between: { Args: { p_a: string; p_b: string }; Returns: boolean };
       is_blocked_email_domain: { Args: { p_domain: string }; Returns: boolean };
       is_super_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       materialize_all_series: { Args: Record<PropertyKey, never>; Returns: number };
       materialize_offer_series: { Args: { p_template_id: string }; Returns: number };
       materialize_request_series: { Args: { p_template_id: string }; Returns: number };
+      offer_line: {
+        Args: { p_dest: unknown; p_origin: unknown; p_route: unknown };
+        Returns: unknown;
+      };
       record_email_verification: { Args: Record<PropertyKey, never>; Returns: string };
       reject_college_request: { Args: { p_request_id: string }; Returns: undefined };
       remove_vehicle: { Args: { p_id: string }; Returns: undefined };
+      rounded_detour_m: { Args: { p_line: unknown; p_point: unknown }; Returns: number };
+      route_fits: {
+        Args: {
+          p_dest_radius_m: number;
+          p_dropoff: unknown;
+          p_line: unknown;
+          p_offer_dest: unknown;
+          p_pickup: unknown;
+          p_pickup_radius_m: number;
+        };
+        Returns: boolean;
+      };
       save_ride_offer: {
         Args: {
           p_cost_per_seat?: number;
@@ -1159,6 +1285,19 @@ export type Database = {
           p_website?: string;
         };
         Returns: string;
+      };
+      time_fits: {
+        Args: {
+          p_depart: string;
+          p_flex_minutes: number;
+          p_window_end: string;
+          p_window_start: string;
+        };
+        Returns: boolean;
+      };
+      time_gap_minutes: {
+        Args: { p_depart: string; p_window_end: string; p_window_start: string };
+        Returns: number;
       };
       validated_point: {
         Args: { p_college_id: string; p_lat: number; p_lng: number; p_what: string };

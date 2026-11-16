@@ -111,6 +111,33 @@ client acting as real signed-in users (`e2e/rls-raw-client.spec.ts`).
   vehicle, women-only eligibility, cost-sharing rules, and a daily limit
   (`app_settings.max_posts_per_day`, default 10).
 
+## Matching
+
+`find_matches_for_request(id)` (drivers for a rider) and
+`find_matches_for_offer(id)` (riders for a driver) apply the hard rules in
+SQL; only the owner of the request/offer can call them.
+
+1. Same college (checked again inside the function, on top of RLS).
+2. Open, dated ride with enough free seats.
+3. Departure ± flexibility overlaps the rider's window (inclusive). Weekly
+   requests/offers are compared by weekday and local time of day.
+4. Pickup within 1.5 km of the driver's route (`app_settings.match_pickup_radius_m`).
+   The route is the road route if a router is configured, else the straight line.
+5. Drop-off within 2 km of the driver's destination (`match_dest_radius_m`),
+   **or** near the route _further along_ than the pickup
+   (`ST_LineLocatePoint`), so nobody is matched against the direction of travel.
+6. Women-only rules both ways; no match if either person blocked the other.
+
+Ranking is a pure function, `lib/matching/score.ts`, with every weight and
+threshold in `lib/matching/config.ts`: detour (50%), time gap (30%) and rating
+(20%, shrunk towards 4★ so one 5★ review doesn't beat fifty 4.8★ reviews).
+
+**Privacy:** results carry only what the public views already show (first
+name, rating, vehicle summary, area, fuzzed points). The detour figure is
+rounded to 500 m in SQL and shown as "under 1 km" / "about 1.5 km", so
+repeated searches can't be used to trace someone's exact route. On the map,
+other people appear only as 400 m circles.
+
 ## Maps & address search
 
 - Map tiles: Leaflet with `NEXT_PUBLIC_MAP_TILE_URL` (OpenStreetMap by default;

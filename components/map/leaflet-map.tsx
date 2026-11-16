@@ -3,13 +3,14 @@
 import "leaflet/dist/leaflet.css";
 
 import L from "leaflet";
-import { useEffect } from "react";
+import { Fragment, useEffect } from "react";
 import {
   Circle,
   MapContainer,
   Marker,
   Polyline,
   TileLayer,
+  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -35,6 +36,8 @@ export type LeafletMapProps = {
   onPick?: (point: LatLng) => void;
   /** Re-centre when this point changes. */
   focus?: LatLng | null;
+  /** Zoom so every pin (and the line) is visible. */
+  fitToPins?: boolean;
   className?: string;
   ariaLabel?: string;
 };
@@ -65,6 +68,16 @@ function TapHandler({ onPick }: { onPick?: (p: LatLng) => void }) {
   return null;
 }
 
+function FitToPins({ points }: { points: [number, number][] }) {
+  const map = useMap();
+  const key = JSON.stringify(points);
+  useEffect(() => {
+    const pts = JSON.parse(key) as [number, number][];
+    if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [32, 32], maxZoom: 15 });
+  }, [key, map]);
+  return null;
+}
+
 function FocusOn({ focus }: { focus?: LatLng | null }) {
   const map = useMap();
   useEffect(() => {
@@ -84,6 +97,7 @@ export default function LeafletMap({
   line,
   onPick,
   focus,
+  fitToPins = false,
   className,
   ariaLabel = "Map",
 }: LeafletMapProps) {
@@ -103,19 +117,31 @@ export default function LeafletMap({
       />
       <TapHandler onPick={onPick} />
       <FocusOn focus={focus} />
+      {fitToPins ? (
+        <FitToPins
+          points={[...pins.map((p) => [p.lat, p.lng] as [number, number]), ...(line ?? [])]}
+        />
+      ) : null}
       {line && line.length > 1 ? (
         <Polyline positions={line} pathOptions={{ color: "#0f766e", weight: 4, opacity: 0.8 }} />
       ) : null}
       {pins.map((p) =>
         p.kind === "approx" ? (
-          <Circle
-            key={p.id}
-            center={[p.lat, p.lng]}
-            radius={400}
-            pathOptions={{ color: "#0f766e", fillOpacity: 0.15, weight: 1 }}
-          />
+          <Fragment key={p.id}>
+            <Circle
+              center={[p.lat, p.lng]}
+              radius={400}
+              pathOptions={{ color: "#0f766e", fillOpacity: 0.15, weight: 1 }}
+            />
+            {/* A tappable marker too: at city zoom the circle is only a few pixels. */}
+            <Marker position={[p.lat, p.lng]} icon={pinIcon("approx")} title={p.title}>
+              {p.title ? <Tooltip>{p.title} (approximate)</Tooltip> : null}
+            </Marker>
+          </Fragment>
         ) : (
-          <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon(p.kind)} title={p.title} />
+          <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon(p.kind)} title={p.title}>
+            {p.title ? <Tooltip>{p.title}</Tooltip> : null}
+          </Marker>
         ),
       )}
     </MapContainer>
