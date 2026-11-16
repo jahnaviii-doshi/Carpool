@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Start local Supabase
+        run: pnpm db:start
+
+      - name: Database tests (pgTAP)
+        run: pnpm test:db
+
+      - name: Generated types are up to date
+        run: |
+          pnpm db:types
+          git diff --exit-code lib/supabase/database.types.ts
+
+      - name: Write .env.local for the app
+        run: |
+          pnpm exec supabase status -o env \
+            | grep -E '^(API_URL|ANON_KEY)=' \
+            | sed -e 's/^API_URL=/NEXT_PUBLIC_SUPABASE_URL=/' \
+                  -e 's/^ANON_KEY=/NEXT_PUBLIC_SUPABASE_ANON_KEY=/' > .env.local
+
+      - name: Build
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: pnpm test:e2e

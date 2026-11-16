@@ -1,0 +1,3 @@
+-- Local development seed data. Runs after migrations on `supabase db reset`.
+-- Colleges and their email domains are added in Milestone 2:
+--   American University of Sharjah — aus.edu — University City, Sharjah, UAE
