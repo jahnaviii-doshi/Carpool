@@ -43,7 +43,7 @@ test.describe("offering a ride", () => {
 
     // Saving opens the ride's match page; it is also listed under My rides.
     await expect(page).toHaveURL(/\/offers\/[0-9a-f-]+\?saved=1$/);
-    await expect(page.getByRole("heading", { name: /riders? on your way/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /riders? on your way/i })).toBeVisible();
     await page.getByRole("link", { name: "My rides" }).click();
     const card = page.getByTestId("my-offer");
     await expect(card).toContainText("Al Nahda, Sharjah");
