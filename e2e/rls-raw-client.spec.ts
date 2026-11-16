@@ -91,6 +91,56 @@ test("College A cannot read College B through the raw Supabase client", async ()
   expect((await a1.client.from("college_requests").select("*")).data).toEqual([]);
   expect((await a1.client.from("super_admins" as never).select("*")).error).not.toBeNull();
 
+  // Offers: A2 posts a ride. A1 (same college) sees only the fuzzed point and
+  // the area; B1 (other college) sees nothing at all.
+  const vehicle = await a2.client.rpc("save_vehicle", {
+    p_type: "car",
+    p_make: "Kia",
+    p_model: "Rio",
+    p_color: "Grey",
+    p_seats: 3,
+    p_plate_number: "SHJ 1 2345",
+  });
+  expect(vehicle.error).toBeNull();
+  const tomorrow = new Date(Date.now() + 36 * 3600 * 1000).toISOString().slice(0, 10);
+  const offer = await a2.client.rpc("save_ride_offer", {
+    p_vehicle_id: vehicle.data!,
+    p_origin_lat: 25.305,
+    p_origin_lng: 55.37,
+    p_origin_label: "Villa 12, Street 5, Al Nahda",
+    p_origin_area: "Al Nahda, Sharjah",
+    p_dest_lat: 25.312,
+    p_dest_lng: 55.4905,
+    p_dest_label: "AUS Main Gate",
+    p_depart_local: `${tomorrow}T08:00:00`,
+    p_seats_total: 2,
+  });
+  expect(offer.error).toBeNull();
+  const offerId = offer.data!;
+
+  const seen = await a1.client.from("offers_public").select("*").eq("id", offerId).single();
+  expect(seen.data?.origin_area).toBe("Al Nahda, Sharjah");
+  expect(seen.data).not.toHaveProperty("origin_label");
+  expect(seen.data).not.toHaveProperty("origin_point");
+  const offsetM = Math.hypot(
+    (seen.data!.origin_lat! - 25.305) * 111_320,
+    (seen.data!.origin_lng! - 55.37) * 111_320 * Math.cos((25.305 * Math.PI) / 180),
+  );
+  expect(offsetM).toBeGreaterThan(190);
+  expect(offsetM).toBeLessThan(410);
+
+  expect((await a1.client.from("ride_offers").select("*").eq("id", offerId)).data).toEqual([]);
+  expect((await a1.client.from("my_offers").select("*").eq("id", offerId)).data).toEqual([]);
+  expect((await a1.client.from("vehicle_plates").select("*")).data).toEqual([]);
+  expect((await b1.client.from("offers_public").select("*").eq("id", offerId)).data).toEqual([]);
+  expect((await b1.client.from("ride_offers").select("*").eq("id", offerId)).data).toEqual([]);
+
+  // Direct writes are refused; only the RPCs can create rides.
+  const direct = await a1.client.from("ride_offers").insert({} as never);
+  expect(direct.error).not.toBeNull();
+  const steal = await a1.client.rpc("cancel_ride_offer", { p_id: offerId });
+  expect(steal.error).not.toBeNull();
+
   // Mirror: College B sees nothing from AUS.
   const fromB = await b1.client.from("profiles_public").select("id").in("id", [a1.id, a2.id]);
   expect(fromB.data).toEqual([]);

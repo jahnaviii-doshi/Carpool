@@ -4,7 +4,17 @@ import { NextResponse, type NextRequest } from "next/server";
 import { publicEnv } from "@/lib/env";
 
 /** Routes that need a signed-in user. Finer checks happen in each page. */
-const PROTECTED = ["/home", "/onboarding", "/admin"];
+const PROTECTED = [
+  "/home",
+  "/onboarding",
+  "/admin",
+  "/rides",
+  "/offer",
+  "/offers",
+  "/find",
+  "/requests",
+  "/vehicles",
+];
 /** Routes a signed-in user has no reason to see. */
 const SIGNED_OUT_ONLY = ["/"];
 

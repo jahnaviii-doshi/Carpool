@@ -78,3 +78,58 @@ with c as (
   values ('College B (test)', 'CB', 'Ajman') returning id
 )
 insert into public.college_domains (college_id, domain) select id, 'collegeb.test' from c;
+
+-- Local time in Dubai `p_days` days from now, at `p_time`.
+create function pg_temp.dubai_local(p_days int, p_time time default '08:00')
+returns timestamp
+language sql
+as $$
+  select ((now() at time zone 'Asia/Dubai')::date + p_days) + p_time;
+$$;
+
+-- As the given user: add a car and post a one-off offer from Al Nahda
+-- (Sharjah) to the AUS campus tomorrow at 08:00. Returns the offer id.
+create function pg_temp.post_offer(p_uid uuid, p_women_only boolean default false)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_vehicle uuid;
+  v_offer uuid;
+begin
+  perform pg_temp.login_as(p_uid);
+  v_vehicle := public.save_vehicle('car', 'Toyota', 'Corolla', 'White', 3, 'SHJ 3 12345');
+  v_offer := public.save_ride_offer(
+    p_vehicle_id => v_vehicle,
+    p_origin_lng => 55.3700, p_origin_lat => 25.3050, p_origin_label => 'Villa 12, Street 5, Al Nahda',
+    p_origin_area => 'Al Nahda',
+    p_dest_lng => 55.4905, p_dest_lat => 25.3120, p_dest_label => 'AUS Main Gate',
+    p_dest_area => 'University City',
+    p_depart_local => pg_temp.dubai_local(1),
+    p_seats_total => 2,
+    p_women_only => p_women_only);
+  perform pg_temp.logout();
+  return v_offer;
+end;
+$$;
+
+-- As the given user: post a one-off request from Muwaileh to campus tomorrow.
+create function pg_temp.post_request(p_uid uuid)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_request uuid;
+begin
+  perform pg_temp.login_as(p_uid);
+  v_request := public.save_ride_request(
+    p_pickup_lng => 55.4500, p_pickup_lat => 25.3000, p_pickup_label => 'Building 7, Muwaileh',
+    p_pickup_area => 'Muwaileh',
+    p_dest_lng => 55.4905, p_dest_lat => 25.3120, p_dest_label => 'AUS Main Gate',
+    p_dest_area => 'University City',
+    p_date => (now() at time zone 'Asia/Dubai')::date + 1,
+    p_window_start => '07:30', p_window_end => '08:30');
+  perform pg_temp.logout();
+  return v_request;
+end;
+$$;

@@ -90,6 +90,45 @@ All of this is enforced by RLS, and tested two ways: pgTAP
 (`supabase/tests/030_rls_college_isolation.test.sql`) and the raw Supabase JS
 client acting as real signed-in users (`e2e/rls-raw-client.spec.ts`).
 
+## Rides, locations and privacy
+
+- **Exact vs public.** Every place has an exact point and label (e.g. "Villa
+  12, Street 5, Al Nahda"), seen only by its owner, and a public **area**
+  ("Al Nahda, Sharjah") plus a **fuzzed point**, which is what other users get.
+- **Fuzzing.** Both ends of every offer and request are moved 200–400 m. The
+  offset comes from `HMAC(secret, user + ~100 m grid cell)` instead of a fresh
+  random number, so a driver who posts from home every day always shows the
+  same fuzzed point and averaging many posts reveals nothing. The secret is in
+  the `private` schema, which no API role can read.
+- **Recurring rides.** "Repeat every week" saves a _series template_ that is
+  never shown or matched itself. It is turned into ordinary dated rides for the
+  next 14 days (`app_settings.series_horizon_days`) when saved and daily by
+  `pg_cron` (`materialize-ride-series`), so seats and bookings always belong
+  to one specific date.
+- **Writes** go only through RPCs (`save_vehicle`, `save_ride_offer`,
+  `save_ride_request`, `cancel_*`), which check `can_write()`, ownership,
+  time (entered in the college's time zone), distance from campus, seats vs
+  vehicle, women-only eligibility, cost-sharing rules, and a daily limit
+  (`app_settings.max_posts_per_day`, default 10).
+
+## Maps & address search
+
+- Map tiles: Leaflet with `NEXT_PUBLIC_MAP_TILE_URL` (OpenStreetMap by default;
+  use a hosted tile provider in production).
+- Address search goes through our own `/api/geocode` (signed-in users only,
+  per-user limit, cached), so API keys stay on the server and searches aren't
+  sent from the user's device. Pick the provider with `GEOCODER_PROVIDER`:
+
+| Value                 | Needs                                                    | Notes                                                                                     |
+| --------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `nominatim` (default) | nothing                                                  | Public OSM server: max 1 request/second (enforced), fine for development and small pilots |
+| `google`              | `GOOGLE_MAPS_API_KEY` (Places API (New) + Geocoding API) | Best coverage in the UAE; recommended for production                                      |
+| `ola`                 | `OLA_MAPS_API_KEY`                                       | Strongest in India                                                                        |
+| `fixture`             | nothing                                                  | Offline list of places around AUS; used by tests and CI                                   |
+
+- Routing is optional (`ROUTER_PROVIDER=osrm|ors`). Without it, matching uses
+  the straight line from start to destination.
+
 ## Region defaults (UAE)
 
 The first college is the **American University of Sharjah** (`aus.edu`,
@@ -100,7 +139,9 @@ and are set for the UAE: times shown in `Asia/Dubai`, phone numbers default to
 
 **Cost-sharing is off for the UAE.** Carrying passengers for money in a
 private car counts as illegal passenger transport in the UAE, so the
-cost-per-seat field is hidden unless the region enables it.
+cost-per-seat field is hidden, and the database refuses a cost, unless the
+college has `cost_sharing_enabled = true`. Where it is enabled the cost is
+capped at `max_cost_per_km × route km ÷ seats` (`app_settings`).
 
 ## Super admins
 

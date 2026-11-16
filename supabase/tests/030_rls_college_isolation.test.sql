@@ -2,11 +2,9 @@
 -- tries to read College B's data. Every attempt must return 0 rows. Also: a
 -- same-college user with no accepted booking cannot read private_contacts.
 --
--- Offers and requests are added in Milestone 3; their isolation tests will
--- be added to this file then.
 begin;
 \ir _helpers.psql
-select plan(19);
+select plan(33);
 
 create temp table ids as
 select
@@ -15,6 +13,13 @@ select
   pg_temp.create_onboarded_user('b1@collegeb.test', '+971503333333', 'Bilal Noor') as b1,
   pg_temp.create_user('a3unverified@aus.edu') as a3;
 grant select on ids to anon, authenticated;
+
+create temp table rides as
+select pg_temp.post_offer((select b1 from ids)) as b_offer,
+       pg_temp.post_request((select b1 from ids)) as b_request,
+       pg_temp.post_offer((select a2 from ids)) as a2_offer,
+       pg_temp.post_request((select a2 from ids)) as a2_request;
+grant select on rides to anon, authenticated;
 
 -- ---- As A1 (AUS) ------------------------------------------------------------
 select pg_temp.login_as((select a1 from ids));
@@ -51,6 +56,37 @@ select is((select count(*)::int from public.college_domains), 0,
 select throws_ok($$ select * from public.super_admins $$, '42501', null,
   'super_admins is not readable');
 
+-- Offers and requests: College B is invisible everywhere.
+select is((select count(*)::int from public.ride_offers where id = (select b_offer from rides)), 0,
+  'A1 cannot read College B offer from the base table');
+select is((select count(*)::int from public.offers_public where id = (select b_offer from rides)), 0,
+  'A1 cannot read College B offer from offers_public');
+select is((select count(*)::int from public.ride_requests where id = (select b_request from rides)), 0,
+  'A1 cannot read College B request from the base table');
+select is((select count(*)::int from public.requests_public where id = (select b_request from rides)), 0,
+  'A1 cannot read College B request from requests_public');
+select is((select count(*)::int from public.my_offers where id = (select b_offer from rides)), 0,
+  'A1 cannot read College B offer through my_offers');
+select is((select count(*)::int from public.vehicles where owner_id = (select b1 from ids)), 0,
+  'A1 cannot read College B vehicles');
+select is((select count(*)::int from public.vehicle_plates), 0,
+  'A1 (no vehicle of their own) reads no number plates');
+
+-- Same college: visible only through the fuzzed public views.
+select is((select count(*)::int from public.ride_offers where id = (select a2_offer from rides)), 0,
+  'A1 cannot read a same-college offer from the base table (exact points)');
+select is((select count(*)::int from public.offers_public where id = (select a2_offer from rides)), 1,
+  'A1 sees a same-college offer through offers_public');
+select is((select count(*)::int from public.requests_public where id = (select a2_request from rides)), 1,
+  'A1 sees a same-college request through requests_public');
+select is((select count(*)::int from public.vehicle_plates p join public.vehicles v on v.id = p.vehicle_id
+           where v.owner_id = (select a2 from ids)), 0,
+  'A1 cannot read a same-college number plate');
+select is(
+  (select count(*)::int from public.offers_public
+   where college_id <> (select college_id from public.profiles where id = (select a1 from ids))),
+  0, 'offers_public never returns another college');
+
 -- ---- As B1 (College B): mirror check ---------------------------------------
 select pg_temp.login_as((select b1 from ids));
 select is(
@@ -64,6 +100,8 @@ select is((select count(*)::int from public.profiles_public), 0,
 
 -- ---- Anonymous --------------------------------------------------------------
 select pg_temp.login_anon();
+select throws_ok($$ select * from public.offers_public $$, '42501', null, 'anon cannot read offers_public');
+select throws_ok($$ select * from public.ride_offers $$, '42501', null, 'anon cannot read ride_offers');
 select throws_ok($$ select * from public.profiles $$, '42501', null, 'anon cannot read profiles');
 select throws_ok($$ select * from public.profiles_public $$, '42501', null, 'anon cannot read profiles_public');
 select throws_ok($$ select * from public.private_contacts $$, '42501', null, 'anon cannot read private_contacts');

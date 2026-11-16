@@ -1,7 +1,7 @@
 import { CircleCheck, Inbox } from "lucide-react";
 
 import { RequestReview } from "@/app/admin/request-review";
-import { AppHeader } from "@/components/app-header";
+import { AppShell } from "@/components/app-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { requireSuperAdmin } from "@/lib/auth/session";
@@ -11,7 +11,8 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ approved?: string; rejected?: string }>;
 }) {
-  const { supabase, profile } = await requireSuperAdmin();
+  const session = await requireSuperAdmin();
+  const { supabase } = session;
   const { approved, rejected } = await searchParams;
 
   const [requests, colleges] = await Promise.all([
@@ -27,11 +28,8 @@ export default async function AdminPage({
   ]);
 
   return (
-    <>
-      <AppHeader collegeShortName={profile.college?.short_name} isSuperAdmin />
-      <main className="mx-auto flex max-w-md flex-col gap-8 p-4 pb-12">
-        <h1 className="pt-2 text-2xl font-bold tracking-tight">Admin</h1>
-
+    <AppShell session={session} title="Admin">
+      <div className="flex flex-col gap-8">
         {approved || rejected ? (
           <Alert role="status">
             <CircleCheck aria-hidden />
@@ -74,7 +72,7 @@ export default async function AdminPage({
             ))}
           </ul>
         </section>
-      </main>
-    </>
+      </div>
+    </AppShell>
   );
 }

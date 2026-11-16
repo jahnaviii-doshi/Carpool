@@ -10,7 +10,7 @@ const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(3).optional(),
-  GEOCODER_PROVIDER: z.enum(["nominatim", "ola", "google"]).default("nominatim"),
+  GEOCODER_PROVIDER: z.enum(["nominatim", "ola", "google", "fixture"]).default("nominatim"),
   NOMINATIM_BASE_URL: z.url().default("https://nominatim.openstreetmap.org"),
   OLA_MAPS_API_KEY: z.string().min(1).optional(),
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
